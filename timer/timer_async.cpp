@@ -1,6 +1,9 @@
 #include <asio.hpp>
 #include <iostream>
 
+// link: https://think-async.com/Asio/asio-1.30.2/doc/asio/tutorial/tuttimer2.html
+
+
 /// @brief 用于timer的可调用对象
 /// @param ec 错误码, timer.async_wait必须要这个error_code参数
 void print(const std::error_code& ec)
