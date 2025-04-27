@@ -17,10 +17,10 @@ void print(const std::error_code& ec)
   }
 }
 
-// 传给async_wait的可调用对象, 必须接收一个 const std::error_code& 参数（当然也可以是按值传参 std::error_code，asio能接受）
-// 因为 async_wait 的要求是回调必须是一个可调用对象，它接收一个 const std::error_code& 作为唯一参数。
-// 如果你的目标函数有多参数，常见的方法是用 std::bind 或 lambda 来提前“绑定”那些额外参数，只保留 error_code 一个参数留给
-// async_wait 调用。
+// 传给async_wait的可调用对象, 必须接收一个 const std::error_code& 参数（当然也可以是按值传参
+// std::error_code，asio能接受） 因为 async_wait 的要求是回调必须是一个可调用对象，它接收一个 const std::error_code&
+// 作为唯一参数。 如果你的目标函数有多参数，常见的方法是用 std::bind 或 lambda 来提前“绑定”那些额外参数，只保留
+// error_code 一个参数留给 async_wait 调用。
 struct Handler
 {
   void operator()(const std::error_code& ec) const

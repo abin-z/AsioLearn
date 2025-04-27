@@ -31,4 +31,6 @@ project(AsioLearn LANGUAGES C CXX VERSION 0.9.0)
 # 添加子目录
 add_subdirectory(include)
 add_subdirectory(timer)
+add_subdirectory(tcp)
+add_subdirectory(udp)
 
