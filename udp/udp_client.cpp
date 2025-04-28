@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 
     // 创建UDP socket
     udp::socket socket(io_context);
-    socket.open(udp::v4()); // 打开socket，指定使用IPv4
+    socket.open(udp::v4());  // 打开socket，指定使用IPv4
 
     // 发送一个空白数据包到服务端（通常 daytime 服务只需要触发即可）
     std::array<char, 1> send_buf = {{0}};
