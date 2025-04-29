@@ -33,4 +33,5 @@ add_subdirectory(include)
 add_subdirectory(timer)
 add_subdirectory(tcp)
 add_subdirectory(udp)
+add_subdirectory(serial_port)
 
