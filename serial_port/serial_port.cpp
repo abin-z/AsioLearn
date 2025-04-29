@@ -10,7 +10,7 @@ int main()
     asio::serial_port serial(io);
 
     // 打开串口（Linux 示例为 /dev/ttyUSB0，Windows 用 "COM3"）
-    serial.open("/dev/ttyUSB0");  // 请根据实际设备调整
+    serial.open("/dev/ttyS0");  // 请根据实际设备调整
 
     // 配置串口参数
     serial.set_option(asio::serial_port_base::baud_rate(9600));
