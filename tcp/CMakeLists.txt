@@ -6,3 +6,6 @@ target_link_libraries(tcp_server PRIVATE asio)
 
 add_executable(tcp_server_async tcp_server_async.cpp)
 target_link_libraries(tcp_server_async PRIVATE asio)
+
+add_executable(tcp_server_async2 tcp_server_async2.cpp)
+target_link_libraries(tcp_server_async2 PRIVATE asio)

@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
       std::array<char, 128> buf;  // 读缓冲区
       std::error_code error;      // 错误码
 
-      size_t len = socket.read_some(asio::buffer(buf), error);  // 阻塞读取数据
+      size_t len = socket.read_some(asio::buffer(buf), error);  // 阻塞读取数据, 传入error就不会抛异常了.
 
       if (error == asio::error::eof)
         break;  // 对方关闭连接，退出循环

@@ -33,9 +33,17 @@ int main()
 
       std::string message = make_daytime_string();  // 获取当前时间字符串
 
-      std::error_code ignored_error;
-      asio::write(socket, asio::buffer(message), ignored_error);  // 发送时间给客户端
-      // 忽略发送过程中可能出现的错误
+      std::error_code error_code;
+      asio::write(socket, asio::buffer(message), error_code);  // 发送时间给客户端
+      // 处理error_code, 判断是否发送成功
+      if (error_code)
+      {
+        std::cerr << "Send failed: " << error_code.message() << std::endl;
+      }
+      else
+      {
+        std::cout << "Send success." << std::endl;
+      }
     }
   }
   catch (std::exception& e)
