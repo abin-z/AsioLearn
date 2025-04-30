@@ -73,7 +73,7 @@ int main()
   try
   {
     asio::io_context io;
-    SerialPortSession session(io, "/dev/ttyS0", 9600);  // 修改为 COM3 或其他串口
+    SerialPortSession session(io, "COM2", 115200);  // 修改为 COM3 或其他串口
 
     session.set_receive_callback([](const std::string& data) { std::cout << "[RECV] " << data; });
 
