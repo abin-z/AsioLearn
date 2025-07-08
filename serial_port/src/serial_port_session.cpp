@@ -26,7 +26,7 @@ void SerialPortSession::start()
   if (running_) return;
   running_ = true;
 
-  open();  // 👈 在 start() 里打开串口
+  open();  // 打开串口
 
   io_thread_ = std::thread([this]() { io_.run(); });
 }
@@ -82,7 +82,7 @@ void SerialPortSession::send(std::string data)
   if (!running_) return;
 
   auto self = shared_from_this();
-  auto data_ptr = std::make_shared<std::string>(std::move(data));
+  auto data_ptr = std::make_shared<std::string>(std::move(data));  // 使用 shared_ptr 确保数据在异步操作期间有效
 
   asio::post(strand_, [self, data_ptr]() {
     if (!self->serial_.is_open()) return;

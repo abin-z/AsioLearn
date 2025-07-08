@@ -13,9 +13,13 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
   using ReceiveCallback = std::function<void(const std::string&)>;
   using ErrorCallback = std::function<void(const std::string&)>;
 
+  // 禁用拷贝和赋值
+  SerialPortSession(const SerialPortSession&) = delete;
+  SerialPortSession& operator=(const SerialPortSession&) = delete;
+
   static std::shared_ptr<SerialPortSession> create(const std::string& port_name, unsigned int baud_rate);
 
-  void start();  // 👈 启动 io + open 串口
+  void start();  // 启动 io + open 串口
   void stop();   // 关闭串口 + 停止线程
   void send(std::string data);
 
@@ -27,7 +31,7 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
 
  private:
   SerialPortSession(std::string port_name, unsigned int baud_rate);
-  void open();  // 👈 私有，仅由 start() 调用
+  void open();
   void start_async_read();
   void report_info(const std::string& msg);
   void report_warn(const std::string& msg);
@@ -38,12 +42,12 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
   asio::strand<asio::io_context::executor_type> strand_;
   asio::serial_port serial_;
   std::thread io_thread_;
-  std::atomic<bool> running_ = false;
+  std::atomic<bool> running_{false};
 
   std::string port_name_;
-  unsigned int baud_rate_ = 9600;
+  unsigned int baud_rate_{9600};
 
-  std::array<char, 512> read_buffer_;
+  std::array<char, 1024> read_buffer_;
   ReceiveCallback receive_callback_;
   ErrorCallback error_callback_;
 };
