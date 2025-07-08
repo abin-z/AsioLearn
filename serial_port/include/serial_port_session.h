@@ -1,3 +1,37 @@
+/*
+使用示例：基本串口通信流程
+
+#include "serial_port_session.h"
+#include <iostream>
+
+int main()
+{
+  // 1. 创建串口会话，指定串口号和波特率
+  auto session = SerialPortSession::create("COM1", 115200);
+
+  // 2. 设置接收数据回调
+  session->set_receive_callback([](const std::string& data) {
+    std::cout << "[RECEIVED] " << data << std::endl;
+  });
+
+  // 3. 设置错误回调（如串口断开、读取失败等）
+  session->set_error_callback([](const std::string& err) {
+    std::cerr << "[ERROR] " << err << std::endl;
+  });
+
+  // 4. 启动串口通信（打开串口 + 启动异步读写线程）
+  session->start();
+
+  // 5. 向串口发送数据
+  session->send("Hello, Serial Port!");
+
+  // 6. 关闭串口（可选，析构时会自动关闭）
+  session->stop();
+
+  return 0;
+}
+*/
+
 #pragma once
 
 #include <array>
