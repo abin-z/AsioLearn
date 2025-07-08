@@ -1,75 +1,66 @@
 #include "serial_port_session.h"
 
-SerialPortSession::SerialPortSession() :
-  work_guard_(asio::make_work_guard(io_)), strand_(asio::make_strand(io_)), serial_(io_), running_(false)
+#include <future>
+
+SerialPortSession::SerialPortSession(std::string port_name, unsigned int baud_rate) :
+  work_guard_(asio::make_work_guard(io_)),
+  strand_(asio::make_strand(io_)),
+  serial_(io_),
+  port_name_(std::move(port_name)),
+  baud_rate_(baud_rate)
 {
-  io_thread_ = std::thread([this]() { io_.run(); });
 }
 
 SerialPortSession::~SerialPortSession()
 {
-  stop();
-  if (io_thread_.joinable()) io_thread_.join();
+  stop();  // RAII
 }
 
-std::shared_ptr<SerialPortSession> SerialPortSession::create()
+std::shared_ptr<SerialPortSession> SerialPortSession::create(const std::string& port_name, unsigned int baud_rate)
 {
-  return std::shared_ptr<SerialPortSession>(new SerialPortSession());
+  return std::shared_ptr<SerialPortSession>(new SerialPortSession(port_name, baud_rate));
 }
 
-void SerialPortSession::set_receive_callback(ReceiveCallback cb)
+void SerialPortSession::start()
 {
-  receive_callback_ = std::move(cb);
+  if (running_) return;
+  running_ = true;
+
+  open();  // 👈 在 start() 里打开串口
+
+  io_thread_ = std::thread([this]() { io_.run(); });
 }
 
-void SerialPortSession::set_error_callback(ErrorCallback cb)
+void SerialPortSession::open()
 {
-  error_callback_ = std::move(cb);
-}
+  try
+  {
+    serial_.open(port_name_);
+    serial_.set_option(asio::serial_port_base::baud_rate(baud_rate_));
+    serial_.set_option(asio::serial_port_base::character_size(8));
+    serial_.set_option(asio::serial_port_base::parity(asio::serial_port_base::parity::none));
+    serial_.set_option(asio::serial_port_base::stop_bits(asio::serial_port_base::stop_bits::one));
+    serial_.set_option(asio::serial_port_base::flow_control(asio::serial_port_base::flow_control::none));
 
-bool SerialPortSession::is_open() const
-{
-  return serial_.is_open();
-}
-
-void SerialPortSession::open(const std::string& port_name, unsigned int baud_rate)
-{
-  auto self = shared_from_this();
-
-  asio::post(strand_, [self, port_name, baud_rate]() {
-    try
-    {
-      self->serial_.open(port_name);
-      self->serial_.set_option(asio::serial_port_base::baud_rate(baud_rate));
-      self->serial_.set_option(asio::serial_port_base::character_size(8));
-      self->serial_.set_option(asio::serial_port_base::parity(asio::serial_port_base::parity::none));
-      self->serial_.set_option(asio::serial_port_base::stop_bits(asio::serial_port_base::stop_bits::one));
-      self->serial_.set_option(asio::serial_port_base::flow_control(asio::serial_port_base::flow_control::none));
-
-      self->running_ = true;
-      self->report_info("Serial port opened: " + port_name);
-      self->start_async_read();
-    }
-    catch (const std::exception& e)
-    {
-      self->report_error(std::string("Failed to open serial port: ") + e.what());
-    }
-  });
+    report_info("Serial port opened: " + port_name_);
+    start_async_read();
+  }
+  catch (const std::exception& e)
+  {
+    report_error("Failed to open serial port: " + std::string(e.what()));
+  }
 }
 
 void SerialPortSession::stop()
 {
   if (!running_) return;
-
   running_ = false;
 
   auto self = shared_from_this();
+  std::promise<void> done;
+  auto fut = done.get_future();
 
-  // 保证串口关闭任务完成再 stop io
-  std::promise<void> close_done;
-  auto close_future = close_done.get_future();
-
-  asio::post(strand_, [self, &close_done]() {
+  asio::post(strand_, [self, &done]() {
     if (self->serial_.is_open())
     {
       asio::error_code ec;
@@ -77,12 +68,13 @@ void SerialPortSession::stop()
       self->serial_.close(ec);
       self->report_info("Serial port closed.");
     }
-    close_done.set_value();
+    done.set_value();
   });
 
-  close_future.wait();  // 等待关闭完成
+  fut.wait();
 
-  io_.stop();  // 终止 io_context::run()
+  io_.stop();
+  if (io_thread_.joinable()) io_thread_.join();
 }
 
 void SerialPortSession::send(std::string data)
@@ -103,6 +95,21 @@ void SerialPortSession::send(std::string data)
   });
 }
 
+void SerialPortSession::set_receive_callback(ReceiveCallback cb)
+{
+  receive_callback_ = std::move(cb);
+}
+
+void SerialPortSession::set_error_callback(ErrorCallback cb)
+{
+  error_callback_ = std::move(cb);
+}
+
+bool SerialPortSession::is_open() const
+{
+  return serial_.is_open();
+}
+
 void SerialPortSession::start_async_read()
 {
   auto self = shared_from_this();
@@ -113,7 +120,7 @@ void SerialPortSession::start_async_read()
       {
         std::string data(self->read_buffer_.data(), bytes_transferred);
         if (self->receive_callback_) self->receive_callback_(data);
-        self->start_async_read();  // 持续监听
+        self->start_async_read();  // 继续监听
       }
       else if (ec != asio::error::operation_aborted)
       {
