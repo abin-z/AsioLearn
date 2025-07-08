@@ -1,25 +1,35 @@
 #include <iostream>
+#include <string>
 
 #include "serial_port_session.h"
 
+
 int main()
 {
-  // 创建串口会话实例
+  std::string port = "COM2";
+  unsigned int baud = 115200;
+
   auto session = SerialPortSession::create();
 
-  // 设置接收回调，打印收到的数据
-  session->set_receive_callback([](const std::string& data) { std::cout << "Received: " << data << std::endl; });
+  session->set_receive_callback([](const std::string& data) { std::cout << "[RECEIVED] " << data << std::endl; });
 
-  // 设置错误回调，打印错误信息
-  session->set_error_callback([](const std::string& err) { std::cerr << err << std::endl; });
+  session->set_error_callback([](const std::string& msg) { std::cerr << msg << std::endl; });
 
-  // 打开串口，修改为你实际的串口名称和波特率
-  session->open("COM3", 115200);
+  session->open(port, baud);
 
-  
-  session->send("hello abin\n");
-  
-  std::cout << "Enter text to send, empty line to quit:" << std::endl;
+  std::cout << "Type to send data to serial port. Type 'exit' to quit.\n";
 
+  std::string line;
+  while (true)
+  {
+    std::getline(std::cin, line);
+    if (line == "exit") break;
+
+    session->send(line);
+  }
+
+  session->stop();  // 安全关闭
+
+  std::cout << "Serial port session stopped.\n";
   return 0;
 }

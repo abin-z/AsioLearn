@@ -1,7 +1,7 @@
 #include "serial_port_session.h"
 
 SerialPortSession::SerialPortSession() :
-  work_guard_(asio::make_work_guard(io_)), strand_(asio::make_strand(io_)), serial_(io_)
+  work_guard_(asio::make_work_guard(io_)), strand_(asio::make_strand(io_)), serial_(io_), running_(false)
 {
   io_thread_ = std::thread([this]() { io_.run(); });
 }
@@ -35,6 +35,7 @@ bool SerialPortSession::is_open() const
 void SerialPortSession::open(const std::string& port_name, unsigned int baud_rate)
 {
   auto self = shared_from_this();
+
   asio::post(strand_, [self, port_name, baud_rate]() {
     try
     {
@@ -44,6 +45,8 @@ void SerialPortSession::open(const std::string& port_name, unsigned int baud_rat
       self->serial_.set_option(asio::serial_port_base::parity(asio::serial_port_base::parity::none));
       self->serial_.set_option(asio::serial_port_base::stop_bits(asio::serial_port_base::stop_bits::one));
       self->serial_.set_option(asio::serial_port_base::flow_control(asio::serial_port_base::flow_control::none));
+
+      self->running_ = true;
       self->report_info("Serial port opened: " + port_name);
       self->start_async_read();
     }
@@ -56,34 +59,46 @@ void SerialPortSession::open(const std::string& port_name, unsigned int baud_rat
 
 void SerialPortSession::stop()
 {
+  if (!running_) return;
+
+  running_ = false;
+
   auto self = shared_from_this();
-  asio::post(strand_, [self]() {
+
+  // 保证串口关闭任务完成再 stop io
+  std::promise<void> close_done;
+  auto close_future = close_done.get_future();
+
+  asio::post(strand_, [self, &close_done]() {
     if (self->serial_.is_open())
     {
       asio::error_code ec;
-      asio::error_code cancel_ec = self->serial_.cancel(ec);
-      if (cancel_ec)
-      {
-        self->report_error("Serial port cancel failed: " + cancel_ec.message());
-      }
-      asio::error_code close_ec = self->serial_.close(ec);
-      if (close_ec)
-      {
-        self->report_error("Serial port close failed: " + close_ec.message());
-      }
+      self->serial_.cancel(ec);
+      self->serial_.close(ec);
       self->report_info("Serial port closed.");
     }
+    close_done.set_value();
   });
+
+  close_future.wait();  // 等待关闭完成
+
+  io_.stop();  // 终止 io_context::run()
 }
 
-void SerialPortSession::send(const std::string& data)
+void SerialPortSession::send(std::string data)
 {
+  if (!running_) return;
+
   auto self = shared_from_this();
-  asio::post(strand_, [self, data]() {
+  auto data_ptr = std::make_shared<std::string>(std::move(data));
+
+  asio::post(strand_, [self, data_ptr]() {
     if (!self->serial_.is_open()) return;
-    asio::async_write(self->serial_, asio::buffer(data),
-                      asio::bind_executor(self->strand_, [self](const asio::error_code& ec, std::size_t) {
-                        if (ec) self->report_error("Send error: " + ec.message());
+
+    asio::async_write(self->serial_, asio::buffer(*data_ptr),
+                      asio::bind_executor(self->strand_, [self, data_ptr](const asio::error_code& ec, std::size_t) {
+                        if (ec && ec != asio::error::operation_aborted)
+                          self->report_error("Send error: " + ec.message());
                       }));
   });
 }
@@ -91,16 +106,16 @@ void SerialPortSession::send(const std::string& data)
 void SerialPortSession::start_async_read()
 {
   auto self = shared_from_this();
-  self->serial_.async_read_some(
-    asio::buffer(self->read_buffer_),
-    asio::bind_executor(self->strand_, [self](const asio::error_code& ec, std::size_t bytes_transferred) {
+  serial_.async_read_some(
+    asio::buffer(read_buffer_),
+    asio::bind_executor(strand_, [self](const asio::error_code& ec, std::size_t bytes_transferred) {
       if (!ec)
       {
         std::string data(self->read_buffer_.data(), bytes_transferred);
         if (self->receive_callback_) self->receive_callback_(data);
-        self->start_async_read();  // 继续监听
+        self->start_async_read();  // 持续监听
       }
-      else
+      else if (ec != asio::error::operation_aborted)
       {
         self->report_error("Read error: " + ec.message());
       }

@@ -2,7 +2,9 @@
 
 #include <array>
 #include <asio.hpp>
+#include <atomic>
 #include <functional>
+#include <future>
 #include <memory>
 #include <string>
 #include <thread>
@@ -13,13 +15,12 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
   using ReceiveCallback = std::function<void(const std::string&)>;
   using ErrorCallback = std::function<void(const std::string&)>;
 
-  static std::shared_ptr<SerialPortSession> create();  // 工厂构造
+  static std::shared_ptr<SerialPortSession> create();
 
   void open(const std::string& port_name, unsigned int baud_rate);
   void stop();
-  void send(const std::string& data);
+  void send(std::string data);
 
-  // 请在 open() 之前设置
   void set_receive_callback(ReceiveCallback cb);
   void set_error_callback(ErrorCallback cb);
 
@@ -27,7 +28,7 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
   ~SerialPortSession();
 
  protected:
-  SerialPortSession();  // 仅允许 create() 构造
+  SerialPortSession();
 
  private:
   void start_async_read();
@@ -45,4 +46,6 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
   std::array<char, 512> read_buffer_;
   ReceiveCallback receive_callback_;
   ErrorCallback error_callback_;
+
+  std::atomic<bool> running_;
 };
