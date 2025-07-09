@@ -2,6 +2,7 @@
 
 #include <future>
 
+
 SerialPortSession::SerialPortSession(std::string port_name, unsigned int baud_rate) :
   work_guard_(asio::make_work_guard(io_)),
   strand_(asio::make_strand(io_)),
@@ -21,17 +22,19 @@ std::shared_ptr<SerialPortSession> SerialPortSession::create(const std::string& 
   return std::shared_ptr<SerialPortSession>(new SerialPortSession(port_name, baud_rate));
 }
 
-void SerialPortSession::start()
+bool SerialPortSession::start()
 {
-  if (running_) return;
+  if (running_) return true;
+  if (!open())  // 打开串口
+  {
+    return false;
+  }
+  io_thread_ = std::thread([this]() { io_.run(); });  // 启动线程
   running_ = true;
-
-  open();  // 打开串口
-
-  io_thread_ = std::thread([this]() { io_.run(); });
+  return true;
 }
 
-void SerialPortSession::open()
+bool SerialPortSession::open()
 {
   try
   {
@@ -47,8 +50,10 @@ void SerialPortSession::open()
   }
   catch (const std::exception& e)
   {
-    report_error("Failed to open serial port: " + std::string(e.what()));
+    report_error("Failed to open serial port: " + port_name_ + ", " + std::string(e.what()));
+    return false;
   }
+  return true;
 }
 
 void SerialPortSession::stop()
@@ -79,7 +84,11 @@ void SerialPortSession::stop()
 
 void SerialPortSession::send(std::string data)
 {
-  if (!running_) return;
+  if (!running_)
+  {
+    report_error("Send error: Serial port is not open.");
+    return;
+  };
 
   auto self = shared_from_this();
   auto data_ptr = std::make_shared<std::string>(std::move(data));  // 使用 shared_ptr 确保数据在异步操作期间有效
@@ -131,15 +140,15 @@ void SerialPortSession::start_async_read()
 
 void SerialPortSession::report_info(const std::string& msg)
 {
-  if (error_callback_) error_callback_("[INFO] " + msg);
+  if (error_callback_) error_callback_("[SerialPort INFO] " + msg);
 }
 
 void SerialPortSession::report_warn(const std::string& msg)
 {
-  if (error_callback_) error_callback_("[WARN] " + msg);
+  if (error_callback_) error_callback_("[SerialPort WARN] " + msg);
 }
 
 void SerialPortSession::report_error(const std::string& msg)
 {
-  if (error_callback_) error_callback_("[ERROR] " + msg);
+  if (error_callback_) error_callback_("[SerialPort ERROR] " + msg);
 }

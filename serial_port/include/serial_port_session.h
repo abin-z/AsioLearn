@@ -53,7 +53,7 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
 
   static std::shared_ptr<SerialPortSession> create(const std::string& port_name, unsigned int baud_rate);
 
-  void start();  // 启动 io + open 串口
+  bool start();  // 启动 io + open 串口
   void stop();   // 关闭串口 + 停止线程
   void send(std::string data);
 
@@ -65,7 +65,7 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
 
  private:
   SerialPortSession(std::string port_name, unsigned int baud_rate);
-  void open();
+  bool open();
   void start_async_read();
   void report_info(const std::string& msg);
   void report_warn(const std::string& msg);

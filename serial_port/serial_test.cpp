@@ -1,8 +1,9 @@
+#include <chrono>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "serial_port_session.h"
-
 
 int main()
 {
@@ -15,9 +16,14 @@ int main()
 
   session->set_error_callback([](const std::string& msg) { std::cerr << msg << std::endl; });
 
-  session->start();  // 启动串口会话
-
-  std::cout << "Type to send data to serial port. Type 'exit' to quit.\n";
+  // session->send("hello");
+  auto ret = session->start();  // 启动串口会话
+  // auto ret = false;
+  std::cout << "Type to send data to serial port. Type 'exit' to quit." + std::to_string(ret) + "\n";
+  // session->stop();  // 启动串口会话
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  // ret = session->start();  // 启动串口会话
+  // std::cout << "Type to send data to serial port. Type 'exit' to quit2." + std::to_string(ret) + "\n";
 
   std::string line;
   while (true)
