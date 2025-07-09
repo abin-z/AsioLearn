@@ -1,5 +1,9 @@
 /*
-使用示例：基本串口通信流程
+ @description: 串口通讯类, 依赖asio库(头文件版).
+ @version: v0.9.0
+ @author: abin
+
+ 使用示例：基本串口通信流程
 
 #include "serial_port_session.h"
 #include <iostream>
