@@ -7,6 +7,21 @@
 
 int main()
 {
+
+  auto ports = SerialPortSession::list_serial_ports();
+  if (ports.empty())
+  {
+    std::cout << "No serial ports found.\n";
+  }
+  else
+  {
+    std::cout << "Available serial ports:\n";
+    for (const auto& port : ports)
+    {
+      std::cout << "  " << port << "\n";
+    }
+  }
+
   std::string port = "COM2";
   unsigned int baud = 115200;
 
