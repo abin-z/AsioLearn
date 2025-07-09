@@ -58,7 +58,8 @@ class SerialPortSession : public std::enable_shared_from_this<SerialPortSession>
 
   // 创建串口会话对象
   static std::shared_ptr<SerialPortSession> create(const std::string& port_name, unsigned int baud_rate);
-  static std::vector<std::string> list_serial_ports();  // 获取存在的串口名称
+  // 获取存在的串口名称
+  static std::vector<std::string> list_serial_ports();
 
   bool start();  // 启动 io + open 串口
   void stop();   // 关闭串口 + 停止线程
