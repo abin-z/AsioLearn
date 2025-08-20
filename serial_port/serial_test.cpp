@@ -26,7 +26,9 @@ int main()
   unsigned int baud = 115200;
 
   auto session = SerialPortSession::create(port, baud);
-
+  session->stop();
+  session = SerialPortSession::create(port, baud);
+  std::cout << "session->is_open()1 = " << session->is_open();
   session->set_receive_callback([](const std::string& data) { std::cout << "[RECEIVED] " << data << std::endl; });
 
   session->set_error_callback([](const std::string& msg) { std::cerr << msg << std::endl; });
@@ -35,10 +37,21 @@ int main()
   auto ret = session->start();  // 启动串口会话
   // auto ret = false;
   std::cout << "Type to send data to serial port. Type 'exit' to quit." + std::to_string(ret) + "\n";
-  // session->stop();  // 启动串口会话
+  // session->stop();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   // ret = session->start();  // 启动串口会话
   // std::cout << "Type to send data to serial port. Type 'exit' to quit2." + std::to_string(ret) + "\n";
+  std::cout << "session->is_open()2 = " << session->is_open();
+  session->send("hhhhhhhhhhhhhhhhhhhhhhhhh");
+  session->stop();
+  // session.reset();
+  session = SerialPortSession::create(port, baud);
+
+  session->set_receive_callback([](const std::string& data) { std::cout << "[RECEIVED2] " << data << std::endl; });
+  session->set_error_callback([](const std::string& msg) { std::cerr << msg << std::endl; });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 目前关闭后需要延时
+  session->start();
+  session->send("yyyyyyyyyyyyyyyyyyyyyyyy");
 
   std::string line;
   while (true)
