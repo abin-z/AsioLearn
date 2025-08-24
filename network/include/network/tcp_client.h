@@ -46,8 +46,6 @@
 ------------------------------------------------------------------------------------------
 */
 
-
-
 #pragma once
 #include <array>
 #include <asio.hpp>
@@ -91,6 +89,9 @@ class TcpClient : public std::enable_shared_from_this<TcpClient>
 
   // 线程安全状态查询
   Status get_status() const;
+
+  // 是否链接成功
+  bool is_connected() const;
 
   // 发送数据（线程安全）
   void send(const std::string& msg);

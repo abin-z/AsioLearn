@@ -35,6 +35,11 @@ TcpClient::Status TcpClient::get_status() const
   return current_status_.load();
 }
 
+bool TcpClient::is_connected() const
+{
+  return get_status() == Status::Connected;
+}
+
 void TcpClient::send(const std::string& msg)
 {
   auto self = shared_from_this();
